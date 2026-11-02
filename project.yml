@@ -20,6 +20,8 @@ targets:
     info:
       path: Generated/App-Info.plist
       properties:
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "2"
         CFBundleDisplayName: 하루한칸 Live
         NSSupportsLiveActivities: true
         UILaunchScreen: {}
@@ -44,6 +46,8 @@ targets:
     info:
       path: Generated/Widget-Info.plist
       properties:
+        CFBundleShortVersionString: "0.2.0"
+        CFBundleVersion: "2"
         CFBundleDisplayName: 하루한칸 공부
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
