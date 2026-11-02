@@ -13,6 +13,7 @@ struct StudyActionIntent: LiveActivityIntent {
         self.action = action; self.subjectIndex = index; self.expectedDate = date
     }
     func perform() async throws -> some IntentResult {
+        await CloudSync.flush()
         do {
             try await MainActor.run { try StudyStore.shared.act(action, index: subjectIndex, expectedDate: expectedDate) }
         } catch {

@@ -8,6 +8,9 @@ import ActivityKit
 @MainActor struct StudyHome: View {
     @ObservedObject private var store = StudyStore.shared
     @Environment(\.openURL) private var openURL
+    @State private var editing=false
+    @State private var minutes=""
+    @State private var note=""
     @State private var message: String?
     @State private var pendingImport: Data?
     @State private var pendingPair: String?
@@ -44,13 +47,17 @@ import ActivityKit
                                 .buttonStyle(.bordered).disabled(store.isLocked(Study.subjects[store.state.selected]))
                         }
                     }
+                    Button("선택 과목 시간·메모 편집") {beginEdit()}
+                    Picker("잠금화면 카드 색",selection:Binding(get:{store.state.theme ?? "green"},set:{value in perform{try store.setTheme(value)}})) {
+                        Text("초록").tag("green");Text("파랑").tag("blue");Text("분홍").tag("pink");Text("크림").tag("cream")
+                    }.pickerStyle(.segmented)
                     Divider()
-                    Text("잠금화면 → 사이트 자동 반영").font(.headline)
+                    Text("사이트 ↔ 잠금화면 동기화").font(.headline)
                     Text(store.cloudMessage).font(.footnote).foregroundStyle(.secondary)
                     Link("사이트에서 자동 반영 연결",destination:URL(string:Study.site+"index.html?connect=1")!)
-                    Button("대기 기록 지금 전송") { Task { await CloudSync.flush() } }
+                    Button("지금 동기화") { Task { await CloudSync.flush() } }
                     Button("자동 전송 연결 해제") { CloudSync.disconnect() }.font(.caption)
-                    Text("한 번 연결하면 잠금화면 입력 후 서버에 전송해요. 사이트는 열려 있을 때 약 15초마다, 다시 열 때도 받아와요. 인터넷이 없으면 기기에 보관하며 다음 입력이나 앱을 열 때 다시 보내요. 사이트에서 바꾼 기록은 이 앱으로 자동 수신하지 않아요.").font(.footnote).foregroundStyle(.secondary)
+                    Text("한 번 연결하면 잠금화면 입력 후 서버에 전송해요. 사이트는 열려 있을 때 약 15초마다, 다시 열 때도 받아와요. 인터넷이 없으면 기기에 보관하며 다음 입력이나 앱을 열 때 다시 보내요. 사이트의 변경은 앱을 열거나 잠금화면 버튼을 누를 때 받아와요.").font(.footnote).foregroundStyle(.secondary)
                     Divider()
                     Text("수동으로 기록 보내기").font(.headline)
                     Text("미전송 \(store.state.pending.count)개").font(.caption)
@@ -64,13 +71,15 @@ import ActivityKit
                 }.padding()
             }.navigationTitle("하루한칸")
              .alert("안내",isPresented:Binding(get:{message != nil},set:{if !$0 {message = nil}})) { Button("확인"){message=nil} } message:{Text(message ?? "")}
-             .task { await CloudSync.flush() }
+             .sheet(isPresented:$editing){NavigationStack {Form {Text(Study.subjects[store.state.selected]);TextField("공부 시간(분)",text:$minutes).keyboardType(.numberPad);TextField("짧은 메모",text:$note,axis:.vertical)}.navigationTitle("시간·메모").toolbar {Button("저장"){if !minutes.isEmpty && Int(minutes)==nil {message="분 단위 숫자를 입력해 주세요.";return};perform{try store.editDetail(index:store.state.selected,date:Study.day(),minutes:minutes.isEmpty ? nil : Int(minutes),note:note)};editing=false}}}}
+             .task { while !Task.isCancelled {await CloudSync.flush();try? await Task.sleep(for:.seconds(15))} }
              .onChange(of: scenePhase) { _,phase in if phase == .active { Task { await CloudSync.flush() } } }
              .confirmationDialog("이 사이트에 공부 기록을 자동 전송할까요?",isPresented:Binding(get:{pendingPair != nil},set:{if !$0 {pendingPair=nil}}),titleVisibility:.visible) {
                  Button("자동 전송 연결") { if let token=pendingPair { do { try CloudSync.connect(token);Task { await CloudSync.flush() } } catch { message=error.localizedDescription } };pendingPair=nil }
                  Button("취소",role:.cancel){pendingPair=nil}
-             } message: { Text("하루한칸 사이트의 로그인 계정에 ○·△·×·완료 기록을 저장해요.") }
+             } message: { Text("하루한칸 사이트의 로그인 계정에 ○·△·×·시간·메모·완료 기록을 서로 동기화해요.") }
              .onOpenURL { url in
+                 if url.scheme=="haruhankan-native",url.host=="edit",let value=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="index"})?.value,let index=Int(value),(0..<11).contains(index){try? store.select(index);beginEdit();return}
                  if url.scheme == "haruhankan-native",url.host == "pair",let token=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name == "token"})?.value,token.range(of:"^[a-f0-9]{64}$",options:.regularExpression) != nil {pendingPair=token;return}
                  guard url.scheme == "haruhankan-native", url.host == "import",
                        let raw = URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name == "payload"})?.value,
@@ -83,6 +92,7 @@ import ActivityKit
              }
         }
     }
+    private func beginEdit(){let detail=store.state.details?[Study.day()]?[Study.subjects[store.state.selected]];minutes=detail?.minutes.map(String.init) ?? "";note=detail?.note ?? "";editing=true}
     private func act(_ action:String,_ index:Int) { perform { try store.act(action,index:index,expectedDate:Study.day()) } }
     private func perform(_ action:() throws -> Void) {
         do { try action();Task {await ActivityController.refresh();await CloudSync.flush()} } catch {message=error.localizedDescription}

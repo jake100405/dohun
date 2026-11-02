@@ -44,7 +44,7 @@ import Security
             // A bounded queue persists first; acknowledgement removes only the submitted IDs.
             for _ in 0..<4 {
                 let ops=Array(store.state.pending.prefix(50))
-                if ops.isEmpty {store.cloudMessage="서버 전송 완료 · 사이트에서 자동 수신해요.";return}
+                if ops.isEmpty {break}
                 struct Packet:Encodable{let v=1;let ops:[QuickOp]}
                 struct Receipt:Decodable{let receipts:[String]}
                 var request=URLRequest(url:URL(string:Study.site+"api/sync")!)
@@ -62,7 +62,18 @@ import Security
                 guard token == credential else{return}
                 try store.acknowledgeCloud(accepted)
             }
-            store.cloudMessage="일부 전송 완료 · 앱을 열거나 다음 입력 때 나머지를 보내요."
+            struct Incoming:Decodable {let ops:[QuickOp];let cursor:Int;let more:Bool}
+            for _ in 0..<10 {
+                var req=URLRequest(url:URL(string:Study.site+"api/sync?after=\(store.state.syncCursor ?? 0)")!)
+                req.setValue("Bearer "+credential,forHTTPHeaderField:"Authorization")
+                let (data,response)=try await session.data(for:req)
+                guard let http=response as? HTTPURLResponse,http.statusCode==200,data.count<800000,token==credential else {throw URLError(.badServerResponse)}
+                let incoming=try JSONDecoder().decode(Incoming.self,from:data)
+                try store.receiveCloud(incoming.ops,cursor:incoming.cursor)
+                if !incoming.more {break}
+            }
+            await ActivityController.refresh()
+            store.cloudMessage=store.state.pending.isEmpty ? "양방향 동기화 완료" : "일부 전송 대기 · 다음 입력 때 재시도해요."
         } catch {
             store.cloudMessage="전송 대기 \(store.state.pending.count)개 · 인터넷 연결 후 앱을 열거나 다음 입력 때 다시 보내요."
         }

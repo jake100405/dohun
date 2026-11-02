@@ -2,7 +2,7 @@ import Foundation
 import ActivityKit
 struct StudyActivity: ActivityAttributes {
     struct ContentState: Codable, Hashable, Sendable {
-        var date: String; var index: Int; var marks: [String]; var locks: [Bool]
+        var date: String; var index: Int; var marks: [String]; var locks: [Bool]; var minutes:[Int?]?;var notes:[String]?;var theme:String?
     }
     var name: String
 }
@@ -11,7 +11,7 @@ struct StudyActivity: ActivityAttributes {
         let store = StudyStore.shared; let day = Study.day()
         return .init(date: day, index: store.state.selected,
                      marks: Study.subjects.map { store.state.entries[day]?[$0] ?? "-" },
-                     locks: Study.subjects.map { store.isLocked($0, on: day) })
+                     locks: Study.subjects.map { store.isLocked($0, on: day) },minutes:Study.subjects.map{store.state.details?[day]?[$0]?.minutes},notes:Study.subjects.map{store.state.details?[day]?[$0]?.note ?? ""},theme:store.state.theme)
     }
     static func refresh() async {
         let content = ActivityContent(state: snapshot(), staleDate: nil)

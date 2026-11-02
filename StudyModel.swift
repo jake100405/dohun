@@ -34,7 +34,7 @@ enum StudyError: LocalizedError {
 }
 struct QuickOp: Codable, Hashable, Sendable {
     var id: String; var date: String; var subject: String; var kind: String
-    var mark: String?; var lock: Bool?
+    var mark: String?; var lock: Bool?; var detail: StudyDetail?
     init(date: String, subject: String, mark: String) {
         id = "ios-" + UUID().uuidString; self.date = date; self.subject = subject; kind = "mark"; self.mark = mark
     }
@@ -48,16 +48,23 @@ struct QuickOp: Codable, Hashable, Sendable {
         subject = try c.decode(String.self, forKey: .subject); kind = try c.decode(String.self, forKey: .kind)
         if kind == "lock" { lock = try c.decode(Bool.self, forKey: .value) }
         else if kind == "mark" { mark = try c.decode(String.self, forKey: .value) }
+        else if kind == "detail" { detail = try c.decode(StudyDetail.self, forKey: .value) }
         else { throw StudyError.invalid }
     }
+    init(date:String,subject:String,detail:StudyDetail){id="ios-"+UUID().uuidString;self.date=date;self.subject=subject;kind="detail";self.detail=detail}
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id); try c.encode(date, forKey: .date); try c.encode(subject, forKey: .subject); try c.encode(kind, forKey: .kind)
         if kind == "lock" { try c.encode(lock ?? false, forKey: .value) }
+        else if kind == "detail" {try c.encode(detail,forKey:.value)}
         else { try c.encode(mark ?? "-", forKey: .value) }
     }
 }
+struct StudyDetail: Codable, Hashable, Sendable {var minutes:Int?;var note:String}
 struct SavedStudy: Codable {
+    var details:[String:[String:StudyDetail]]?
+    var syncCursor:Int?
+    var theme:String?
     var entries: [String:[String:String]] = [:]
     var completed: [String:[String]] = [:]
     var pending: [QuickOp] = []
@@ -95,7 +102,10 @@ struct WebPayload: Decodable {
             let week = try Study.week(op.date); var set = Set(s.completed[week,default:[]])
             if op.lock == true { set.insert(op.subject) } else { set.remove(op.subject) }
             s.completed[week] = Study.subjects.filter { set.contains($0) }
-        } else if op.mark == "-" { s.entries[op.date]?.removeValue(forKey: op.subject) }
+        } else if op.kind == "detail" {
+            var details=s.details ?? [:];details[op.date,default:[:]][op.subject]=op.detail;s.details=details
+            if s.entries[op.date]?[op.subject] == nil {s.entries[op.date,default:[:]][op.subject]="t"}
+        } else if op.mark == "-" { s.entries[op.date]?.removeValue(forKey: op.subject);s.details?[op.date]?.removeValue(forKey:op.subject) }
         else { s.entries[op.date,default:[:]][op.subject] = op.mark }
     }
     func act(_ action: String, index: Int, expectedDate: String) throws {
@@ -111,11 +121,28 @@ struct WebPayload: Decodable {
         if action == "done" || action == "unlock" {
             op = QuickOp(date: expectedDate, subject: subject, lock: action == "done")
         } else {
+            if action == "plus5" || action == "minus5" {
+                let old=state.details?[expectedDate]?[subject] ?? StudyDetail(minutes:nil,note:"")
+                try editDetail(index:index,date:expectedDate,minutes:min(1440,max(0,(old.minutes ?? 0)+(action == "plus5" ? 5 : -5))),note:old.note);return
+            }
             guard ["o","t","x","-"].contains(action) else { throw StudyError.invalid }
             guard !isLocked(subject, on: expectedDate) else { throw StudyError.locked }
             op = QuickOp(date: expectedDate, subject: subject, mark: action)
         }
         try apply(op, to: &s); s.pending.append(op); s.selected = index; try save(s)
+    }
+    func editDetail(index:Int,date:String,minutes:Int?,note:String) throws {
+        guard (0..<11).contains(index),note.count<=300,minutes == nil || (0...1440).contains(minutes!) else {throw StudyError.invalid}
+        guard !isLocked(Study.subjects[index],on:date) else {throw StudyError.locked}
+        guard state.pending.count<200 else {throw StudyError.full}
+        var s=state;let op=QuickOp(date:date,subject:Study.subjects[index],detail:StudyDetail(minutes:minutes,note:note));try apply(op,to:&s);s.pending.append(op);try save(s)
+    }
+    func setTheme(_ theme:String) throws {var s=state;s.theme=theme;try save(s)}
+    func receiveCloud(_ ops:[QuickOp],cursor:Int) throws {
+        var s=state
+        for op in ops {guard Study.subjects.contains(op.subject) else {throw StudyError.invalid};_ = try Study.date(op.date);try apply(op,to:&s)}
+        for op in s.pending {try apply(op,to:&s)}
+        s.syncCursor=cursor;try save(s)
     }
     func select(_ index: Int) throws {
         guard (0..<11).contains(index) else { throw StudyError.invalid }

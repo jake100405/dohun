@@ -15,13 +15,13 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dohun.haruhankan.free
         PRODUCT_NAME: HaruhankanFree
-        MARKETING_VERSION: "0.2.0"
-        CURRENT_PROJECT_VERSION: "2"
+        MARKETING_VERSION: "0.3.0"
+        CURRENT_PROJECT_VERSION: "3"
     info:
       path: Generated/App-Info.plist
       properties:
-        CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3.0"
+        CFBundleVersion: "3"
         CFBundleDisplayName: 하루한칸 Live
         NSSupportsLiveActivities: true
         UILaunchScreen: {}
@@ -41,13 +41,13 @@ targets:
         PRODUCT_NAME: HaruhankanWidget
         SKIP_INSTALL: "YES"
         APPLICATION_EXTENSION_API_ONLY: "YES"
-        MARKETING_VERSION: "0.2.0"
-        CURRENT_PROJECT_VERSION: "2"
+        MARKETING_VERSION: "0.3.0"
+        CURRENT_PROJECT_VERSION: "3"
     info:
       path: Generated/Widget-Info.plist
       properties:
-        CFBundleShortVersionString: "0.2.0"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.3.0"
+        CFBundleVersion: "3"
         CFBundleDisplayName: 하루한칸 공부
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension

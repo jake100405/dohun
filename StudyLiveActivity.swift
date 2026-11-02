@@ -8,7 +8,7 @@ struct StudyLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: StudyActivity.self) { context in
             StudyCard(state:context.state,stale:context.isStale)
-                .activityBackgroundTint(context.state.locks[context.state.index] ? Color(red:0.82,green:0.90,blue:0.80) : Color(red:0.96,green:0.96,blue:0.93))
+                .activityBackgroundTint(cardColor(context.state.theme))
                 .activitySystemActionForegroundColor(.black)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -38,6 +38,13 @@ struct StudyCard: View {
                 Spacer()
                 action("next",label:"▶")
             }
+            HStack {
+                if !locked {action("minus5",label:"−5분")}
+                Text("\(state.minutes?[state.index] ?? 0)분").font(.caption)
+                if !locked {action("plus5",label:"+5분")}
+                Link("메모 편집",destination:URL(string:"haruhankan-native://edit?index=\(state.index)")!).font(.caption)
+            }
+            if let notes=state.notes,!notes[state.index].isEmpty {Text(notes[state.index]).font(.caption).lineLimit(1)}
             HStack(spacing:6) {
                 if locked {
                     Text("이번 주 완료 · 입력 잠김").font(.caption).frame(maxWidth:.infinity)
@@ -55,3 +62,5 @@ struct StudyCard: View {
         }.buttonStyle(.plain).accessibilityLabel((key == "previous" ? "이전 과목" : key == "next" ? "다음 과목" : label))
     }
 }
+
+func cardColor(_ theme:String?)->Color {switch theme {case "blue":return Color(red:0.82,green:0.90,blue:0.98);case "pink":return Color(red:0.98,green:0.85,blue:0.90);case "cream":return Color(red:0.98,green:0.94,blue:0.80);default:return Color(red:0.86,green:0.94,blue:0.86)}}
