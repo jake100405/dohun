@@ -10,13 +10,13 @@ targets:
   HaruhankanFree:
     type: application
     platform: iOS
-    sources: [HaruhankanApp.swift, StudyModel.swift, StudyActivity.swift, StudyIntent.swift]
+    sources: [HaruhankanApp.swift, StudyModel.swift, StudyActivity.swift, StudyIntent.swift, CloudSync.swift]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dohun.haruhankan.free
         PRODUCT_NAME: HaruhankanFree
-        MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.2.0"
+        CURRENT_PROJECT_VERSION: "2"
     info:
       path: Generated/App-Info.plist
       properties:
@@ -32,15 +32,15 @@ targets:
   HaruhankanWidget:
     type: app-extension
     platform: iOS
-    sources: [StudyLiveActivity.swift, StudyModel.swift, StudyActivity.swift, StudyIntent.swift]
+    sources: [StudyLiveActivity.swift, StudyModel.swift, StudyActivity.swift, StudyIntent.swift, CloudSync.swift]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dohun.haruhankan.free.widget
         PRODUCT_NAME: HaruhankanWidget
         SKIP_INSTALL: "YES"
         APPLICATION_EXTENSION_API_ONLY: "YES"
-        MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "0.2.0"
+        CURRENT_PROJECT_VERSION: "2"
     info:
       path: Generated/Widget-Info.plist
       properties:

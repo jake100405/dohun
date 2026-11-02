@@ -71,6 +71,7 @@ struct WebPayload: Decodable {
     static let shared = StudyStore()
     @Published private(set) var state = SavedStudy()
     @Published private(set) var loadError: String?
+    @Published var cloudMessage = "사이트에서 자동 반영 연결을 설정해 주세요."
     private let key = "HaruhankanFree.state.v1"
     init() {
         if let d = UserDefaults.standard.data(forKey: key) {
@@ -142,6 +143,9 @@ struct WebPayload: Decodable {
         let receipts = Set(p.receipts ?? []); s.pending.removeAll { receipts.contains($0.id) }
         for op in s.pending { try apply(op, to: &s) }
         try save(s)
+    }
+    func acknowledgeCloud(_ ids: Set<String>) throws {
+        var next = state; next.pending.removeAll { ids.contains($0.id) }; try save(next)
     }
     func exportURL() throws -> URL {
         guard !state.pending.isEmpty else { throw StudyError.invalid }

@@ -1,7 +1,7 @@
 import AppIntents
 import ActivityKit
 // LiveActivityIntent runs in the containing app process; the widget renders ContentState.
-// No App Groups, iCloud, APNs, server, or paid entitlement is requested.
+// No App Groups, iCloud, APNs, or paid entitlement is requested.
 struct StudyActionIntent: LiveActivityIntent {
     static var title: LocalizedStringResource = "공부 빠른 입력"
     static var openAppWhenRun: Bool = false
@@ -19,6 +19,7 @@ struct StudyActionIntent: LiveActivityIntent {
             await ActivityController.refresh(); throw error
         }
         await ActivityController.refresh()
+        await CloudSync.flush()
         return .result()
     }
 }
