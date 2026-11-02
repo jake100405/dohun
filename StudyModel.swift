@@ -132,11 +132,12 @@ struct WebPayload: Decodable {
         try apply(op, to: &s); s.pending.append(op); s.selected = index; try save(s)
     }
     func editDetail(index:Int,date:String,minutes:Int?,note:String) throws {
-        guard (0..<11).contains(index),note.count<=300,minutes == nil || (0...1440).contains(minutes!) else {throw StudyError.invalid}
+        guard (0..<11).contains(index),note.utf16.count<=300,minutes == nil || (0...1440).contains(minutes!) else {throw StudyError.invalid}
         guard !isLocked(Study.subjects[index],on:date) else {throw StudyError.locked}
         guard state.pending.count<200 else {throw StudyError.full}
         var s=state;let op=QuickOp(date:date,subject:Study.subjects[index],detail:StudyDetail(minutes:minutes,note:note));try apply(op,to:&s);s.pending.append(op);try save(s)
     }
+    func resetCloudCursor() throws {var s=state;s.syncCursor=0;try save(s)}
     func setTheme(_ theme:String) throws {var s=state;s.theme=theme;try save(s)}
     func receiveCloud(_ ops:[QuickOp],cursor:Int) throws {
         var s=state

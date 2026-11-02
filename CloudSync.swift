@@ -25,6 +25,7 @@ import Security
         if status == errSecItemNotFound {
             guard SecItemAdd(query.merging(attributes){_,v in v} as CFDictionary,nil) == errSecSuccess else {throw StudyError.invalid}
         } else if status != errSecSuccess { throw StudyError.invalid }
+        try StudyStore.shared.resetCloudCursor()
         StudyStore.shared.cloudMessage="연결됨 · 입력을 전송할 준비가 됐어요."
     }
     static func disconnect() {
